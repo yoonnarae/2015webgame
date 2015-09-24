@@ -1,4 +1,4 @@
-﻿window.addEventListener("load",drawScreen,false);
+window.addEventListener("load",drawScreen,false);
 window.addEventListener("keydown",onkeydown,false);
 window.addEventListener("keyup",onkeyup,false);
 window.addEventListener("mousemove",onMouseMove,false);
@@ -33,20 +33,17 @@ ball.src = "ball.png";
 
 var intervalID;
 
-var tempBall1 = { x:0, y:0, go_x:1, go_y:1 };
-var tempBall2 = { x:800, y:0, go_x:-1, go_y:1 };
-var tempBall3 = { x:800, y:600, go_x:-1, go_y:-1 };
-var tempBall4 = { x:0, y:600, go_x:1, go_y:-1 };
+var arrBalls = new Array();
 
-
+var intTime = 0;
 
 function drawScreen() {
 	theCanvas = document.getElementById("GameCanvas");
 	var Context = theCanvas.getContext("2d");
-	Context.drawImage(imgBackground,0,0,1000,700);
+	Context.drawImage(imgBackground,0,0,1024,600);
 	
 	/* 마우스 움직이기 */
-	Context.drawImage(imgPlayer, intPlayerX, intPlayerY, 140, 220);
+	Context.drawImage(imgPlayer, intPlayerX, intPlayerY, 170, 170);
 	Context.filStyle = "#000";
 	Context.font = "24px nanumgothic";
 	Context.textBaseline = "top";
@@ -63,16 +60,18 @@ function drawScreen() {
 
 	/* 게임 상태 */
 	if(GameState == Game_STATE_READY) {
-		Context.fillText ("Ready!", 470, 250);
+		Context.fillText ("Ready!", 512, 300);
 	} else if(GameState == Game_STATE_GAME) {
-		Context.fillText ("Go!", 300, 200);
-		Context.drawImage(ball, tempBall1.x, tempBall1.y);
-		Context.drawImage(ball, tempBall2.x, tempBall2.y);
-		Context.drawImage(ball, tempBall3.x, tempBall3.y);
-		Context.drawImage(ball, tempBall4.x, tempBall4.y);
-	} else if(GameState == Game_STATE_READY) {
+		for(var i = 0; i < arrBalls.length; i++) {
+			Context.drawImage(ball, arrBalls[i].x, arrBalls[i].y);
+		}
+		Context.fillText ("Go!", 512, 300);
+	} else if(GameState == Game_STATE_OVER) {
+		for(var i = 0; i < arrBalls.length; i++) {
+			Context.drawImage(ball, arrBalls[i].x, arrBalls[i].y);
+		}
 		Context.font = '60px NanumGothic';
-		Context.fillText ("Game Over", 400, 300);
+		Context.fillText ("Game Over", 712, 300);
 	}
 
 
@@ -86,7 +85,6 @@ function onkeydown(e) {
 	/* 게임 상태 */
 	if(GameState == Game_STATE_READY) {
 		if(e.keyCode == 13) {
-			GameState = Game_STATE_GAME;
 			onGameStart();
 		}
 	}else if(GameState == Game_STATE_GAME) {
@@ -99,8 +97,8 @@ function onkeydown(e) {
 			break;
 		case 39 : 
 			intPlayerX += 10;
-			if(intPlayerX > theCanvas.width-140) 				
-				intPlayerX = theCanvas.width-140;
+			if(intPlayerX > theCanvas.width-170) 				
+				intPlayerX = theCanvas.width-170;
 			break;
 		case 38 : 
 			intPlayerY -= 10;
@@ -109,13 +107,13 @@ function onkeydown(e) {
 			break;
 		case 40 : 
 			intPlayerY += 10;
-			if(intPlayerY > theCanvas.height-220) 
-				intPlayerY = theCanvas.height-220;			
+			if(intPlayerY > theCanvas.height-170) 
+				intPlayerY = theCanvas.height-170;			
 			break;
 		}
 	}else if(GameState == Game_STATE_OVER) {
 		if(e.keyCode == 13) {
-			GameState = Game_STATE_READY;
+			onReady();
 		}
 	}
 	
@@ -133,8 +131,8 @@ function onMouseDown(e) {
 	strMouseStatus = "클릭!";
 	var theCanvas = document.getElementById("GameCanvas");
 	bMouseClicked = true;
-	intMouseX = e.clientX - theCanvas.offsetLeft-42;
-	intMouseY = e.clientY - theCanvas.offsetTop-50;
+	intPlayerX = e.clientX - theCanvas.offsetLeft-42;
+	intPlayerY = e.clientY - theCanvas.offsetTop-50;
 	drawScreen();
 }
 
@@ -143,8 +141,8 @@ function onMouseMove(e) {
 	if(bMouseClicked) {	
 		var theCanvas = document.getElementById("GameCanvas");
 		bMouseClicked = true;
-		intMouseX = e.clientX - theCanvas.offsetLeft-42;
-		intMouseY = e.clientY - theCanvas.offsetTop-50;
+		intPlayerX = e.clientX - theCanvas.offsetLeft-42;
+		intPlayerY = e.clientY - theCanvas.offsetTop-50;
 		drawScreen();
 	}
 }	
@@ -152,27 +150,189 @@ function onMouseMove(e) {
 function onMouseUp(e) {
 	strMouseStatus = "클릭 끝!";
 	bMouseClicked = false;
-	intMouseX = 480;
-	intMouseY = 300;
+	intPlayerX = 480;
+	intPlayerY = 300;
 	drawScreen();
 }
 
 function onGameStart() {
-	intervalID = setInterval(MoveBall, 100);
+	GameState = Game_STATE_GAME;
+    MakeBall();
+	intervalID = setInterval(InGameUpdate, 100);   //moveBall
+	arrBalls.push({ x:0, y:0, go_x:1, go_y:1});
+	arrBalls.push({ x:800, y:0, go_x:-1, go_y:1});
+	arrBalls.push({ x:800, y:600, go_x:-1, go_y:-1});
+	arrBalls.push({ x:0, y:600, go_x:1, go_y:-1});
+    
+    for(var i = 0; i < 50; i++) {
+        var BallType = RandomNextInt(4);
+        var intX, intY, intGoX, intGoY;
+        switch (BallType) {
+            case 1:
+                intX = 0;
+                intY = RandomNextInt(theCanvas.height-170);
+                intGoX = RandomNextInt(2);
+                intGoY = -2 + RandomNextInt(4);
+                break;
+            case 2:
+                intX = 0;
+                intY = RandomNextInt(theCanvas.height-170);
+                intGoX = RandomNextInt(2);
+                intGoY = -2 + RandomNextInt(4);
+                break;
+            case 3:
+                intX = theCanvas.width-170;
+                intY = RandomNextInt(theCanvas.height-170);
+                intGoX = -2 + RandomNextInt(2);
+                intGoY = -2 + RandomNextInt(4);
+                break;
+            case 4:
+                intX = theCanvas.width-170;
+                intY = RandomNextInt(theCanvas.height-170);
+                intGoX = -2 + RandomNextInt(2);
+                intGoY = -2 + RandomNextInt(4);
+                break;
+                
+        }
+    }
 }
 
 function MoveBall() {
-	tempBall1.x += tempBall1.go_x * 10;
-	tempBall1.y += tempBall1.go_y * 10;
+	for(var i = 0;  i < arrBalls.length; i++ ) {
+		arrBalls[i].x += arrBalls[i].go_x * 10;
+		arrBalls[i].y += arrBalls[i].go_y * 10;
+		if(IsCollisionWithPlayer(arrBalls[i].x, arrBalls[i].y)) {
+			onGameOver();
+		}
 
-	tempBall2.x += tempBall2.go_x * 10;
-	tempBall2.y += tempBall2.go_y * 10;
+		if(arrBalls[i].x < 0 || arrBalls[i].x > 1000 || arrBalls[i].y < 0 || arrBalls[i].y > 700) {
+			var BallType = RandomNextInt(4);
+			switch (BallType) {
+				case 1 : 
+					arrBalls[i].x = 0;
+					arrBalls[i].y = RandomNextInt(theCanvas.height-170);
+					arrBalls[i].go_x = RandomNextInt(2);
+					arrBalls[i].go_y = -2 + RandomNextInt(4);
+                    break;
+                case 2 :
+                    arrBalls[i].x = 0;
+                    arrBalls[i].y = RandomNextInt(theCanvas.height-170);
+                    arrBalls[i].go_x = RandomNextInt(2);
+                    arrBalls[i].go_y = -2 + RandomNextInt(4);
+                    break;
+                case 3 :
+                    arrBalls[i].x = theCanvas.width-170;
+                    arrBalls[i].y = 0;
+                    arrBalls[i].go_x = -2 + RandomNextInt(2);
+                    arrBalls[i].go_y = -2 +  RandomNextInt(4);
+                    break;
+                case 4 :
+                    arrBalls[i].x = theCanvas.width-170;
+                    arrBalls[i].y = 0;
+                    arrBalls[i].go_x = -2 + RandomNextInt(2);
+                    arrBalls[i].go_y = -2 + RandomNextInt(4);
+                    break;
+			}
+		}
+	}
 
-	tempBall3.x += tempBall3.go_x * 10;
-	tempBall3.y += tempBall3.go_y * 10;
-
-	tempBall4.x += tempBall4.go_x * 10;
-	tempBall4.y += tempBall4.go_y * 10;
-	
 	drawScreen();
+}
+
+function IsCollisionWithPlayer(x, y) {
+	if (intPlayerX + 170 > x && intPlayerX + 5 < x + 106 && intPlayerY + 5 < y+ 106 && intPlayerY + 170 > y) {
+		return true;
+	}
+	return false;
+}
+
+function onGameOver() {
+	GameState = Game_STATE_OVER;
+	clearInterval(intervalID);
+}
+
+function onReady() {
+	GameState = Game_STATE_READY;
+	intPlayerX = 480;
+	intPlayerY = 300;
+
+	while(arrBalls.length !=0) {
+		arrBalls.pop();
+	}
+}
+
+function RandomNextInt(max) {
+	return 1 + Math.floor(Math.random()*max);
+}
+
+function InGameUpdate() {
+    intTime += 100;
+    if(intTime % 500 == 0) {
+        for(var i = 0; i < 5; i++) {
+            var BallType = RandomNextInt(4);
+            var intX, intY, intGoX, intGoY;
+            switch (BallType) {
+                case 1:
+                    intX = 0;
+                    intY = RandomNextInt(theCanvas.height-170);
+                    intGoX = RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                case 2:
+                    intX = 0;
+                    intY = RandomNextInt(theCanvas.height-170);
+                    intGoX = RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                case 3:
+                    intX = theCanvas.width-170;
+                    intY = 0;
+                    intGoX = -2 + RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                case 4:
+                    intX = theCanvas.width-170;
+                    intY = 0;
+                    intGoX = -2 + RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                }
+            arrBalls.push({x: intX, y:intY, go_x: intGoX, go_y: intGoY});
+        }
+        MoveBall();
+        
+    }
+}
+
+function MakeBall() {
+    for(var i = 0; i <10; i++) {
+        var BallType = RandomNextInt(4);
+        var intX, intY, intGoX, intGoY;
+        switch (BallType) {
+                case 1:
+                    intX = 0;
+                    intY = RandomNextInt(theCanvas.height-170);
+                    intGoX = RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                case 2:
+                    intX = 0;
+                    intY = RandomNextInt(theCanvas.height-170);
+                    intGoX = RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                case 3:
+                    intX = theCanvas.width-170;
+                    intY = 0;
+                    intGoX = -2 + RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                case 4:
+                    intX = theCanvas.width-170;
+                    intY = 0;
+                    intGoX = -2 + RandomNextInt(2);
+                    intGoY = -2 + RandomNextInt(4);
+                    break;
+                }
+    }
 }
